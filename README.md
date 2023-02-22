@@ -1,10 +1,19 @@
+### WebRTC SDK 1.x deprecation
+Following the major release of our new RTC SDK 2.0, we are deprecating the SDK 1.x releases. The SDK 1.x will be out of
+service on 31/10/2023. All new WebRTC customers must use the SDK 2.x, and customers still using SDK 1.x must migrate
+to the newer release before the end of service date. To migrate from RTC SDK 1.x to 2.x, consult our
+[migration guides](https://github.com/infobip/infobip-rtc-js/wiki/Migration-overview).
+The deprecated [SDK 1.x Github repository](https://github.com/infobip/infobip-rtc-js-1.x-deprecated) can still be
+consulted until the end of service date.
+
 ### Introduction
 
 Infobip RTC is a JavaScript SDK which enables you to take advantage of Infobip platform,
 giving you the ability to enrich your web applications with real-time communications in minimum time,
 while you focus on your application's user experience and business logic.
-We currently support audio and video calls between two web or app users,
-and phone calls between a web or an app user and actual phone device.
+We currently support WebRTC calls between two web or app users, phone calls between a web or app user and an actual 
+phone, Viber calls, calls to the Infobip Conversations platform, as well as room calls - calls with multiple 
+participants.
 
 Here you will find an overview, and a quick guide on how to connect to Infobip platform.
 There is also in-depth reference documentation available.
@@ -45,7 +54,7 @@ import {InfobipRTC} from "infobip-rtc";
 You can include our distribution file in your JavaScript from our CDN:
 
 ```html
-<script src="//rtc.cdn.infobip.com/1.14.9/infobip.rtc.js"></script>
+<script src="//rtc.cdn.infobip.com/2.0.0/infobip.rtc.js"></script>
 ```
 
 The latest tag is also available:
@@ -74,13 +83,14 @@ You will receive the token in a response that you will use to instantiate
 ### Infobip RTC Client
 
 After you have received a token via HTTP API,
-you are ready to instantiate the [`InfobipRTC`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC) client.
-You can do that using these commands:
+you are ready to create an instance of the [`InfobipRTC`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC) 
+client. You can do that using the [`createInfobipRtc`](https://github.com/infobip/infobip-rtc-js/wiki/Creating-InfobipRTC-Client)
+global function.
 
 ```javascript
 let token = obtainToken(); // here you call '/webrtc/1/token'
 let options = {debug: true}
-let infobipRTC = new InfobipRTC(token, options);
+let infobipRTC = createInfobipRtc(token, options);
 ```
 
 Note that this doesn't actually connect to Infobip platform,
@@ -105,134 +115,190 @@ Now you are ready to connect:
 infobipRTC.connect();
 ```
 
-### Making a call
+### Making a WebRTC call
 
-You can call another subscriber if you know their identity.
-It is done via the [`call`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call) method:
-
-```javascript
-let outgoingCall = infobipRTC.call('Alice');
-```
-
-Or if you want to initiate video call:
+You can call another WebRTC endpoint if you know their identity.
+It is done via the [`callWebrtc`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-webrtc) method:
 
 ```javascript
-let outgoingCall = infobipRTC.call('Alice', CallOptions.builder().setVideo(true).build());
+let webrtcCall = infobipRTC.callWebrtc('Alice');
 ```
 
-As you can see, the [`call`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call) method
-returns an instance of [`OutgoingCall`](https://github.com/infobip/infobip-rtc-js/wiki/OutgoingCall) as the result.
+Or if you want to initiate a call with video:
+
+```javascript
+let webrtcCall = infobipRTC.callWebrtc('Alice', WebrtcCallOptions.builder().setVideo(true).build());
+```
+
+As you can see, the [`callWebrtc`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-webrtc) method
+returns an instance of [`WebrtcCall`](https://github.com/infobip/infobip-rtc-js/wiki/WebrtcCall) as the result.
 With it, you can track the status of your call and respond to events. Similar to the client,
 you can set up event handlers, so you can do something when the called subscriber answers the call,
 rejects it, the call is ended, etc. You set up event handlers with the following code:
 
 ```javascript
-outgoingCall.on('ringing', function (event) {
+webrtcCall.on(CallsApiEvents.RINGING, function (event) {
     console.log('Call is ringing on Alice\'s device!');
 });
-outgoingCall.on('established', function (event) {
+
+webrtcCall.on(CallsApiEvents.ESTABLISHED, function (event) {
     console.log('Alice answered call!');
 });
-outgoingCall.on('hangup', function (event) {
-    console.log('Call is done! Status: ' + JSON.stringify(event.status));
+
+webrtcCall.on(CallsApiEvents.HANGUP, function (event) {
+    console.log('Call is done! Status: ' + JSON.stringify(event.errorCode));
 });
-outgoingCall.on('error', function (event) {
-    console.log('Oops, something went very wrong! Message: ' + JSON.stringify(event));
+
+webrtcCall.on(CallsApiEvents.ERROR, function (event) {
+    console.log('Oops, something went very wrong! Message: ' + JSON.stringify(event.errorCode));
 });
 ```
 
 The most important part of the call is definitely the media that travels between the subscribers.
-It can be handled in an `established` event where you have the remote media which can be streamed into your HTML page.
+It can be handled in an `ESTABLISHED` event where you have the remote media which can be streamed into your HTML page.
 This is an example of how you can use it:
 
 ```javascript
 <audio id="remoteAudio" autoplay/>
 
-outgoingCall.on('established', function (event) {
+webrtcCall.on(CallsApiEvents.ESTABLISHED, function (event) {
     console.log('Alice answered call!');
-    document.getElementById('remoteAudio').srcObject = event.remoteStream;
+    document.getElementById('remoteAudio').srcObject = event.stream;
 });
 ```
 
-In case of video call, you should set to your video HTML elements both the stream from your camera,
-and the stream that you got. Example of how you can use it:
+At any time during the WebRTC call, users can add or remove their camera videos. In order to handle the video media, you
+should set the event handlers for `CAMERA_VIDEO_ADDED`, `CAMERA_VIDEO_UPDATED` and `CAMERA_VIDEO_REMOVED` events.
 
 ```javascript
-<video id="localVideo" autoplay muted/>
-<video id="remoteVideo" autoplay/>
+webrtcCall.on(CallsApiEvents.CAMERA_VIDEO_ADDED, function (event) {
+    $('#localVideo').srcObject = event.stream;
+});
 
-outgoingCall.on('established', function (event) {
-    console.log('Alice answered video call!');
-    document.getElementById('localVideo').srcObject = event.localStream;
-    document.getElementById('remoteVideo').srcObject = event.remoteStream;
+webrtcCall.on(CallsApiEvents.CAMERA_VIDEO_UPDATED, function (event) {
+    $('#localVideo').srcObject = event.stream;
+});
+
+webrtcCall.on(CallsApiEvents.CAMERA_VIDEO_REMOVED, function (event) {
+    $('#localVideo').srcObject = null;
 });
 ```
 
-When event handlers are set up and the call is established, there are a few things that you can do with the actual call.
+Then, you can turn on the camera using the 
+[`cameraVideo`](https://github.com/infobip/infobip-rtc-js/wiki/WebrtcCall#camera-video) method.
+
+```javascript
+webrtcCall.cameraVideo(true);
+```
+
+Users can also start or stop sharing their screen. As was the case with camera video, first you should add handlers for
+the following events: `SCREEN_SHARE_ADDED` and `SCREEN_SHARE_REMOVED`:
+
+```javascript
+webrtcCall.on(CallsApiEvents.SCREEN_SHARE_ADDED, function (event) {
+    $('#localScreenShare').srcObject = event.stream;
+});
+
+webrtcCall.on(CallsApiEvents.SCREEN_SHARE_REMOVED, function (event) {
+    $('#localScreenShare').srcObject = null;
+});
+```
+
+Then, you can use the [`screenShare`](https://github.com/infobip/infobip-rtc-js/wiki/WebrtcCall#screen-share) method to 
+start or stop sharing your screen.
+
+```javascript
+webrtcCall.screenShare(true);
+```
+
+In order to handle camera and screen share media from the other side, you should add event handlers for 
+`REMOTE_CAMERA_VIDEO_ADDED`, `REMOTE_CAMERA_VIDEO_REMOVED`, `REMOTE_SCREEN_SHARE_ADDED` and 
+`REMOTE_SCREEN_SHARE_REMOVED` events.
+
+```javascript
+webrtcCall.on(CallsApiEvents.REMOTE_CAMERA_VIDEO_ADDED, function (event) {
+    $('#remoteCameraVideo').srcObject = event.stream;
+});
+
+webrtcCall.on(CallsApiEvents.REMOTE_CAMERA_VIDEO_REMOVED, function (event) {
+    $('#remoteCameraVideo').srcObject = null;
+});
+
+webrtcCall.on(CallsApiEvents.REMOTE_SCREEN_SHARE_ADDED, function (event) {
+    $('#remoteScreenShare').srcObject = event.stream;
+});
+
+webrtcCall.on(CallsApiEvents.REMOTE_SCREEN_SHARE_REMOVED, function (event) {
+    $('#remoteScreenShare').srcObject = null;
+});
+```
+
+Besides adding and removing camera and share screen, there are a few more things that you can do with the actual call.
 One of them, of course, is to hang up.
-That can be done via the [`hangup`](https://github.com/infobip/infobip-rtc-js/wiki/Call#hangup) method on the call,
-and after that, both parties will receive the `hangup` event upon hang up completion.
+That can be done via the [`hangup`](https://github.com/infobip/infobip-rtc-js/wiki/WebrtcCall#hangup) method on the call,
+and after that, both parties will receive the `HANGUP` event upon hang up completion.
 
 ```javascript
-outgoingCall.hangup();
+webrtcCall.hangup();
 ```
 
 You can simulate digit press during the call by sending DTMF codes (Dual-Tone Multi-Frequency).
-This is achieved via [`sendDTMF`](https://github.com/infobip/infobip-rtc-js/wiki/Call#sendDTMF) method.
+This is achieved via [`sendDTMF`](https://github.com/infobip/infobip-rtc-js/wiki/Call#send-dtmf) method.
 Valid DTMF codes are digits from `0-9`, `*` and `#`.
 
 ```javascript
-outgoingCall.sendDTMF('*');
+webrtcCall.sendDTMF('*');
 ```
 
 During the call, you can also mute (and unmute) your audio:
 
 ```javascript
-outgoingCall.mute(true);
+webrtcCall.mute(true);
 ```
 
 To check if the audio is muted, call the
 [`muted`](https://github.com/infobip/infobip-rtc-js/wiki/Call#muted) method in the following way:
 
 ```javascript
-let audioMuted = outgoingCall.muted();
+let audioMuted = webrtcCall.muted();
 ```
 
 Also, you can check the [`call status`](https://github.com/infobip/infobip-rtc-js/wiki/CallStatus):
 
 ```javascript
-let status = outgoingCall.status();
+let status = webrtcCall.status();
 ```
 
 Also, you can check information such as [`duration`](https://github.com/infobip/infobip-rtc-js/wiki/Call#duration),
-[`start time`](https://github.com/infobip/infobip-rtc-js/wiki/Call#startTime),
-[`establish time`](https://github.com/infobip/infobip-rtc-js/wiki/Call#establishTime) and
-[`end time`](https://github.com/infobip/infobip-rtc-js/wiki/Call#endTime) by calling these methods:
+[`start time`](https://github.com/infobip/infobip-rtc-js/wiki/Call#start-time),
+[`establish time`](https://github.com/infobip/infobip-rtc-js/wiki/Call#establish-time) and
+[`end time`](https://github.com/infobip/infobip-rtc-js/wiki/Call#end-time) by calling these methods:
 
 ```javascript
-let duration = outgoingCall.duration();
-let startTime = outgoingCall.startTime();
-let establishTime = outgoingCall.establishTime();
-let endTime = outgoingCall.endTime();
+let duration = webrtcCall.duration();
+let startTime = webrtcCall.startTime();
+let establishTime = webrtcCall.establishTime();
+let endTime = webrtcCall.endTime();
 ```
 
 ### Receiving a call
 
 Besides making outgoing calls, you can also receive incoming calls.
-In order to do that, you need to register the `incoming-call` event handler of
+In order to do that, you need to register the `incoming-webrtc-call` event handler of
 [`InfobipRTC`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC) client.
 That is where you define the behavior of the incoming call.
 One of the most common things to do is to show Answer and Reject options on the UI.
 For the purpose of this guide, let's look at an example that answers the incoming call as soon as it arrives:
 
 ```javascript
-infobipRTC.on('incoming-call', function (incomingCallEvent) {
-    const incomingCall = incomingCallEvent.incomingCall;
-    console.log('Received incoming call from: ' + incomingCall.source().identity);
+infobipRTC.on('incoming-webrtc-call', function (incomingWebrtcCallEvent) {
+    const incomingCall = incomingWebrtcCallEvent.incomingCall;
+    console.log('Received incoming call from: ' + incomingCall.source().identifier);
 
-    incomingCall.on('established', function () {
+    incomingCall.on(CallsApiEvents.ESTABLISHED, function () {
     });
-    incomingCall.on('hangup', function () {
+    
+    incomingCall.on(CallsApiEvents.HANGUP, function () {
     });
 
     incomingCall.accept(); // or incomingCall.decline();
@@ -242,185 +308,190 @@ infobipRTC.on('incoming-call', function (incomingCallEvent) {
 ### Calling phone number
 
 It is similar to calling the regular WebRTC user, you just use the
-[`callPhoneNumber`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#callPhoneNumber) method instead of
-[`call`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call).
+[`callPhone`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-phone) method instead of
+[`callWebrtc`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-webrtc).
 This method accepts an optional second parameter, where you define the `from` parameter.
 Its value will be displayed on the calling phone device as the Caller ID.
-The result of the [`callPhoneNumber`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#callPhoneNumber) is the
-[`OutgoingCall`](https://github.com/infobip/infobip-rtc-js/wiki/OutgoingCall) with which you can do everything
-as when using the [`call`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call) method:
+The result of the [`callPhone`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-phone) is the
+[`PhoneCall`](https://github.com/infobip/infobip-rtc-js/wiki/PhoneCall) with which you can do a few things such as
+muting the call, hanging it up, checking its start time, answer time, duration and more. See reference 
+[documentation](https://github.com/infobip/infobip-rtc-js/wiki/PhoneCall)
+for a full list of available actions.
 
 * Example of calling phone number with `from` defined:
 
 ```javascript
-let outgoingCall = infobipRTC.callPhoneNumber('41793026727', CallPhoneNumberOptions.builder().setFrom('33712345678').build());
+let phoneCall = infobipRTC.callPhone('41793026727', PhoneCallOptions.builder().setFrom('33712345678').build());
 ```
 
 * Example of calling phone number without `from` defined:
 
 ```javascript
-let outgoingCall = infobipRTC.callPhoneNumber('41793026727');
+let phoneCall = infobipRTC.callPhone('41793026727');
 ```
 
-### Conference call
+### Calling Viber
 
-You can have a conference call with other participants that are also in the same conference room.
-The conference call will start as soon as at least one participant joins.
+Calling Viber is very similar to calling a phone number, except the call will arrive to the destination through
+the Viber application. In order to call Viber, you can use the [`callViber`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-viber) method,
+which returns an instance of [`ViberCall`](https://github.com/infobip/infobip-rtc-js/wiki/ViberCall)
 
-Conference call is in the beta stage and available for both video and audio, with a maximum limit of 12 participants.
+```javascript
+let viberCall = infobipRTC.callViber('41793026727', '33712345678');
+```
+
+Please note that unlike in the [`callPhone`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-phone) method,
+`from` is required and passed in as a second parameter to the [`callViber`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-viber) method.
+
+### Room call
+
+Room calls are types of calls that can have up to 15 participants.
+The room call will start as soon as at least one participant joins.
 
 Joining the room is done via the
-[`joinConference`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#joinConference) method:
+[`joinRoom`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#join-room) method:
 
 ```javascript
-let conference = infobipRTC.joinConference('conference-demo');
+let roomCall = infobipRTC.joinRoom('room-demo');
 ```
 
-Or if you want to join the conference with your video:
+Or if you want to join the room with your video:
 
 ```javascript
-let conference = infobipRTC.joinConference('conference-demo', ConferenceOptions.builder().setVideo(true).build());
-```
-
-By default, if you lose an internet connection during the conference call, it will be terminated, and the rest of users
-will receive a `user-left` event.
-But if you start the conference with the `autoReconnect` flag set to `true`, after losing the connection, you will
-receive a `reconnecting` event
-and we will immediately try to connect you back. Once we succeed, you will get a `reconnected` event.
-
-```javascript
-let conference = infobipRTC.joinConference('conference-demo', ConferenceOptions.builder().setAutoReconnect(true).build());
+let roomCall = infobipRTC.joinRoom('room-demo', RoomCallOptions.builder().setVideo(true).build());
 ```
 
 As you can see, that method returns an instance of
-[`Conference`](https://github.com/infobip/infobip-rtc-js/wiki/Conference) as the result.
-With it, you can track the status of your conference call,
-do some actions (mute, share the screen, start sending video...) and respond to events.
+[`RoomCall`](https://github.com/infobip/infobip-rtc-js/wiki/RoomCall) as the result.
+With it, you can track the status of your room call,
+do some actions (mute, share the screen, turn your camera on) and respond to events.
 
-After the user successfully joined the conference, the `joined` event will be emitted.
-It contains an audio media stream and a list of users that are already at the conference.
-You should implement an event handler for it, where the stream should be set to the audio HTML element,
-and the other conference participants might be shown to the user.
+After the user successfully joined the room, the `ROOM_JOINED` event will be emitted.
+It contains an id of the joined room, its name, participants and stream. You should implement an event handler for it, 
+so that the user could be notified about joining the room, and the other participants might be shown to the user.
 
 Here is an example of how to
-handle [`conference events`](https://github.com/infobip/infobip-rtc-js/wiki/Conference#on-conference).
+handle [`room events`](https://github.com/infobip/infobip-rtc-js/wiki/RoomCall#on).
 
-Let's assume that we do have an audio HTML element with the id `conferenceAudio` and video HTML elements with the ids
+Let's assume that we have an audio HTML element with the id `roomAudio` and video HTML elements with the ids
 `localVideo` and `localScreenShare`.
 
 ```javascript
-conference.on('joined', function (event) {
-    $('#conferenceAudio').srcObject = event.stream;
-    var users = event.users.map(user => user.identity).join(", ")
-    console.log('You have joined the conference with ' + event.users.length + " more participants: " + users);
+roomCall.on(CallsApiEvents.ROOM_JOINED, function (event) {
+    $('#remoteAudio').srcObject = event.stream;
+    var participants = event.participants.map(participant => participant.endpoint.identifier).join(", ");
+    console.log(`You have joined the room with ${event.participants.length} more participants: ${participants}`);
 });
-conference.on('left', function (event) {
-    console.log('You have left the conference.');
+
+roomCall.on(CallsApiEvents.ROOM_LEFT, function (event) {
+    console.log(`You have left the room with error code: ${event.errorCode.name}.`);
 });
-conference.on('error', function (event) {
-    console.log('Error!');
+
+roomCall.on(CallsApiEvents.ERROR, function (event) {
+    console.log(`Error! ${event.errorCode.name}`);
 });
-conference.on('reconnecting', function (event) {
-    console.log('You left the conference due to connectivity issues. We will try to reconnect you!');
+
+roomCall.on(CallsApiEvents.PARTICIPANT_JOINED, function (event) {
+    console.log(`${event.participant.endpoint.identifier} joined the room call.`);
 });
-conference.on('reconnected', function (event) {
-    $('#conferenceAudio').srcObject = event.stream;
-    var users = event.users.map(user => user.identity).join(", ")
-    console.log('You have beed reconnected to the conference with ' + event.users.length + " more participants: " + users);
+
+roomCall.on(CallsApiEvents.PARTICIPANT_LEFT, function (event) {
+    console.log(`${event.participant.endpoint.identifier} left the room call.`);
 });
-conference.on('user-joined', function (event) {
-    console.log(event.user.identity + ' user joined.');
+
+roomCall.on(CallsApiEvents.PARTICIPANT_MUTED, function (event) {
+    console.log(`${event.participant.endpoint.identifier} muted.`);
 });
-conference.on('user-left', function (event) {
-    console.log(event.user.identity + ' user left.');
+
+roomCall.on(CallsApiEvents.PARTICIPANT_UNMUTED, function (event) {
+    console.log(`${event.participant.endpoint.identifier} unmuted.`);
 });
-conference.on('user-muted', function (event) {
-    console.log(event.user.identity + ' user muted himself.');
-});
-conference.on('user-unmuted', function (event) {
-    console.log(event.user.identity + ' user unmuted himself.');
-});
-conference.on('user-talking', function (event) {
-    console.log(event.user.identity + ' user started talking.');
-});
-conference.on('user-stopped-talking', function (event) {
-    console.log(event.user.identity + ' user stopped talking.');
-});
-conference.on('local-camera-video-added', function (event) {
+
+roomCall.on(CallsApiEvents.CAMERA_VIDEO_ADDED, function (event) {
     $('#localVideo').srcObject = event.stream;
 });
-conference.on('local-camera-video-removed', function (event) {
+
+roomCall.on(CallsApiEvents.CAMERA_VIDEO_UPDATED, function (event) {
+    $('#localVideo').srcObject = event.stream;
+});
+
+roomCall.on(CallsApiEvents.CAMERA_VIDEO_REMOVED, function (event) {
     $('#localVideo').srcObject = null;
 });
-conference.on('local-screenshare-added', function (event) {
+
+roomCall.on(CallsApiEvents.SCREEN_SHARE_ADDED, function (event) {
     $('#localScreenShare').srcObject = event.stream;
 });
-conference.on('local-screenshare-removed', function (event) {
+
+roomCall.on(CallsApiEvents.SCREEN_SHARE_REMOVED, function (event) {
     $('#localScreenShare').srcObject = null;
 });
 ```
 
-The next two events are fired when another user adds or removes the video.
+The next two events are fired when another participant adds or removes the video.
 You should implement these event handlers in order to add and/or remove an HTML video element with a media stream.
 
 ```javascript
-conference.on('user-camera-video-added', function (event) {
-    // add a new HTML video element with id remoteVideo-event.user.identity
-    $('#remoteVideo-' + event.user.identity).srcObject = event.stream;
+roomCall.on(CallsApiEvents.PARTICIPANT_CAMERA_VIDEO_ADDED, function (event) {
+    // add a new HTML video element with id remoteVideo-event.participant.endpoint.identifier
+    $('#remoteVideo-' + event.participant.endpoint.identifier).srcObject = event.stream;
 });
-conference.on('user-camera-video-removed', function (event) {
-    // remove the HTML video element with id remoteVideo-event.user.identity
+
+roomCall.on(CallsApiEvents.PARTICIPANT_CAMERA_VIDEO_REMOVED, function (event) {
+    console.log(`Participant ${event.participant.endpoint.identifer} removed their camera`)
+    // remove the HTML video element with id remoteVideo-event.participant.endpoint.identifier
 });
 ```
 
-The next two events are fired when another user starts or stops sharing screen.
+The next two events are fired when another participant starts or stops sharing screen.
 You should implement these event handlers in order to add and/or remove an HTML video element with a media stream.
 
 ```javascript
-conference.on('user-screenshare-added', function (event) {
-    // add a new HTML video element with id remoteScreenShare-event.user.identity
-    $('#remoteScreenShare-' + event.user.identity).srcObject = event.stream;
+roomCall.on(CallsApiEvents.PARTICIPANT_SCREEN_SHARE_ADDED, function (event) {
+    // add a new HTML video element with id remoteScreenShare-event.participant.endpoint.identifier
+    $('#remoteScreenShare-' + event.participant.endpoint.identifier).srcObject = event.stream;
 });
-conference.on('user-screenshare-removed', function (event) {
-    // remove the HTML video element with id remoteScreenShare-event.user.identity
+
+roomCall.on(CallsApiEvents.PARTICIPANT_SCREEN_SHARE_REMOVED, function (event) {
+    // remove the HTML video element with id remoteScreenShare-event.participant.endpoint.identifier
 });
 ```
 
-When event handlers are set up and the conference call is established,
-there are a few things that you can do with the actual conference.
+When event handlers are set up and the room call is established,
+there are a few things that you can do with it.
 
-One of them, of course, is to leave it. That can be done via the
-[`leave`](https://github.com/infobip/infobip-rtc-js/wiki/Conference#leave) method at the conference.
-Other participants will receive the `user-left` event upon leave completion.
-
-```javascript
-conference.leave();
-```
-
-During the conference call, you can also mute (and unmute) your audio, by calling the
-[`mute`](https://github.com/infobip/infobip-rtc-js/wiki/Conference#mute) method in the following way:
+One of them, of course, is to leave the room. That can be done via the
+[`leave`](https://github.com/infobip/infobip-rtc-js/wiki/RoomCall#leave) method at the room call.
+Other participants will receive the `PARTICIPANT_LEFT` event upon leave completion.
 
 ```javascript
-conference.mute(true);
+roomCall.leave();
 ```
 
-During the conference call, you can start or stop sending your video, by calling the
-[`cameraVideo`](https://github.com/infobip/infobip-rtc-js/wiki/Conference#cameraVideo) method in the following way:
+During the room call, you can also mute (and unmute) your audio, by calling the
+[`mute`](https://github.com/infobip/infobip-rtc-js/wiki/RoomCall#mute) method in the following way:
 
 ```javascript
-conference.cameraVideo(true | false);
+roomCall.mute(true);
 ```
 
-After this method, the `local-camera-video-added` or `local-camera-video-removed` event is fired.
-
-During the conference call, you can start or stop sharing your screen, by calling the
-[`screenShare`](https://github.com/infobip/infobip-rtc-js/wiki/Conference#screenShare) method in the following way:
+During the room call, you can start or stop sending your video, by calling the
+[`cameraVideo`](https://github.com/infobip/infobip-rtc-js/wiki/RoomCall#camera-video) method in the following way:
 
 ```javascript
-conference.screenShare(true | false);
+roomCall.cameraVideo(true | false);
 ```
 
-After this method, the `local-screenshare-added` or `local-screenshare-removed` event is fired.
+After this method, the `CAMERA_VIDEO_ADDED` or `CAMERA_VIDEO_REMOVED` event is fired.
+
+During the room call, you can start or stop sharing your screen, by calling the
+[`screenShare`](https://github.com/infobip/infobip-rtc-js/wiki/RoomCall#screen-share) method in the following way:
+
+```javascript
+roomCall.screenShare(true | false);
+```
+
+After this method, the `SCREEN_SHARE_ADDED` or `SCREEN_SHARE_REMOVED` event is fired.
 
 ### Media Device information
 
