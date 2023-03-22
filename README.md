@@ -60,7 +60,7 @@ You can include our distribution file in your JavaScript from our CDN:
 The latest tag is also available:
 
 ```html
-<script src="//rtc.cdn.infobip.com/latest/infobip.rtc.js"></script>
+<script src="//rtc.cdn.infobip.com/2/latest/infobip.rtc.js"></script>
 ```
 
 ### Authentication
