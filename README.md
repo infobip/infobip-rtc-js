@@ -167,6 +167,9 @@ webrtcCall.on(CallsApiEvents.ESTABLISHED, function (event) {
 });
 ```
 
+> **Note**: When using JS SDK in Safari, please note that having `autoplay` attribute for `<video>` tag isn't enough for iOS devices. Video elements that include this attribute play automatically only if those elements also include the `playsinline` attribute.
+> You can refer to the [autoplay video policy for Safari](https://developer.apple.com/documentation/webkit/delivering_video_content_for_safari/#3030251) for more information.
+
 At any time during the WebRTC call, users can add or remove their camera videos. In order to handle the video media, you
 should set the event handlers for `CAMERA_VIDEO_ADDED`, `CAMERA_VIDEO_UPDATED` and `CAMERA_VIDEO_REMOVED` events.
 
