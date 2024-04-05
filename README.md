@@ -1,11 +1,3 @@
-### WebRTC SDK 1.x deprecation
-Following the major release of our new RTC SDK 2.0, we are deprecating the SDK 1.x releases. The SDK 1.x will be out of
-service on 31/10/2023. All new WebRTC customers must use the SDK 2.x, and customers still using SDK 1.x must migrate
-to the newer release before the end of service date. To migrate from RTC SDK 1.x to 2.x, consult our
-[migration guides](https://github.com/infobip/infobip-rtc-js/wiki/Migration-overview).
-The deprecated [SDK 1.x Github repository](https://github.com/infobip/infobip-rtc-js-1.x-deprecated) can still be
-consulted until the end of service date.
-
 ### Introduction
 
 Infobip RTC is a JavaScript SDK which enables you to take advantage of Infobip platform,
@@ -39,22 +31,10 @@ If you want to add it as an NPM dependency, run the following:
 npm install infobip-rtc --save
 ```
 
-After which you would use it in your project like this:
-
-```javascript
-let InfobipRTC = require('infobip-rtc');
-```
-
-or as ES6 import:
-
-```javascript
-import {InfobipRTC} from "infobip-rtc";
-```
-
-You can include our distribution file in your JavaScript from our CDN:
+Alternatively, you can include our distribution file directly in your JavaScript from our CDN:
 
 ```html
-<script src="//rtc.cdn.infobip.com/2.0.0/infobip.rtc.js"></script>
+<script src="//rtc.cdn.infobip.com/2.2.7/infobip.rtc.js"></script>
 ```
 
 The latest tag is also available:
