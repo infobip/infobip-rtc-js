@@ -89,6 +89,19 @@ infobipRTC.on('disconnected', function (event) {
 });
 ```
 
+If you want to stop listening later, keep the handler reference and use the [`removeListener`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#remove-listener) method on the same RTC event:
+
+```javascript
+const handleDisconnected = function (event) {
+    console.log('Disconnected!');
+};
+
+infobipRTC.on('disconnected', handleDisconnected);
+
+// later, when you no longer need the handler
+infobipRTC.removeListener('disconnected', handleDisconnected);
+```
+
 Now you are ready to connect:
 
 ```javascript
@@ -133,6 +146,20 @@ webrtcCall.on(CallsApiEvents.ERROR, function (event) {
     console.log('Oops, something went very wrong! Message: ' + JSON.stringify(event.errorCode));
 });
 ```
+
+If you need to stop listening for an event later, keep a reference to the handler function you passed to the [`on`](https://github.com/infobip/infobip-rtc-js/wiki/WebrtcCall#on-call) method. You can then pass that same function to the [`removeListener`](https://github.com/infobip/infobip-rtc-js/wiki/WebrtcCall#remove-listener-call) method.
+
+```javascript
+const handleEstablished = (event) => {
+    console.log('Call established.');
+};
+
+webrtcCall.on(CallsApiEvents.ESTABLISHED, handleEstablished);
+
+// later, when you no longer need the handler
+webrtcCall.removeListener(CallsApiEvents.ESTABLISHED, handleEstablished);
+```
+
 
 The most important part of the call is definitely the media that travels between the subscribers.
 It can be handled in an `ESTABLISHED` event where you have the remote media which can be streamed into your HTML page.
@@ -409,6 +436,19 @@ roomCall.on(CallsApiEvents.SCREEN_SHARE_ADDED, function (event) {
 roomCall.on(CallsApiEvents.SCREEN_SHARE_REMOVED, function (event) {
     $('#localScreenShare').srcObject = null;
 });
+```
+
+If you need to stop listening later, keep the handler reference and use the [`removeListener`](https://github.com/infobip/infobip-rtc-js/wiki/RoomCall#remove-listener) method.
+
+```javascript
+const handleRoomLeft = function (event) {
+    console.log(`You have left the room with error code: ${event.errorCode.name}.`);
+};
+
+roomCall.on(CallsApiEvents.ROOM_LEFT, handleRoomLeft);
+
+// later, when you no longer need the handler
+roomCall.removeListener(CallsApiEvents.ROOM_LEFT, handleRoomLeft);
 ```
 
 The next two events are fired when another participant adds or removes the video.
