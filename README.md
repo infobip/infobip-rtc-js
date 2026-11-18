@@ -4,8 +4,8 @@ Infobip RTC is a JavaScript SDK which enables you to take advantage of Infobip p
 giving you the ability to enrich your web applications with real-time communications in minimum time,
 while you focus on your application's user experience and business logic.
 We currently support WebRTC calls between two web or app users, phone calls between a web or app user and an actual 
-phone, Viber calls, calls to the Infobip Conversations platform, as well as room calls - calls with multiple 
-participants.
+phone, Viber calls, WhatsApp calls, calls to the Infobip Conversations platform, as well as room calls - calls with
+multiple participants.
 
 Here you will find an overview, and a quick guide on how to connect to Infobip platform.
 There is also in-depth reference documentation available.
@@ -352,6 +352,38 @@ let viberCall = infobipRTC.callViber('41793026727', '33712345678');
 
 Please note that unlike in the [`callPhone`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-phone) method,
 `from` is required and passed in as a second parameter to the [`callViber`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-viber) method.
+
+### Calling WhatsApp
+
+Calling WhatsApp is similar to calling Viber, except the call will arrive to the destination through
+the WhatsApp application. In order to call WhatsApp, you can use the
+[`callWhatsApp`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-whatsapp) method,
+which returns an instance of [`WhatsAppCall`](https://github.com/infobip/infobip-rtc-js/wiki/WhatsAppCall).
+
+The destination is an object containing either a `phoneNumber` or a WhatsApp Business-Scoped User ID (`bsuid`),
+and `from` is required and passed in as a second parameter:
+
+```javascript
+// Calling by phone number
+let whatsAppCall = infobipRTC.callWhatsApp({phoneNumber: '41793026727'}, '33712345678');
+
+// Calling by BSUID
+let whatsAppCall = infobipRTC.callWhatsApp({bsuid: 'US.13491208655302741918'}, '33712345678');
+```
+
+Optionally, you can pass
+[`WhatsAppCallOptions`](https://github.com/infobip/infobip-rtc-js/wiki/WhatsAppCallOptions) as the third parameter:
+
+```javascript
+let whatsAppCall = infobipRTC.callWhatsApp(
+    {phoneNumber: '41793026727'},
+    '33712345678',
+    WhatsAppCallOptions.builder().setAutoReconnect(true).build()
+);
+```
+
+See the [`callWhatsApp`](https://github.com/infobip/infobip-rtc-js/wiki/InfobipRTC#call-whatsapp) reference
+documentation for the full list of parameters, accepted formats and available options.
 
 ### Room call
 
